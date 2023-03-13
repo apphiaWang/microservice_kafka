@@ -1,0 +1,30 @@
+FROM node:14-alpine
+# FROM node:14
+
+RUN apk --no-cache add \
+      bash \
+      g++ \
+      ca-certificates \
+      lz4-dev \
+      musl-dev \
+      cyrus-sasl-dev \
+      openssl-dev \
+      make \
+      python3
+
+RUN apk add --no-cache --virtual .build-deps gcc zlib-dev libc-dev bsd-compat-headers py-setuptools bash
+RUN apk add --no-cache libstdc++ gcompat
+
+# # Create app directory
+
+# RUN mkdir -p /usr/local/app
+
+# # Move to the app directory
+# WORKDIR /usr/local/app
+
+WORKDIR /srv
+ADD . .
+RUN npm install
+
+EXPOSE 3000
+CMD ["node", "server.js"]
