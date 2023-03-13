@@ -55,6 +55,4 @@ const createCustomerEventType = avro.Type.forSchema({
   ]
 });
 
-
-
 module.exports ={eventTypes}
