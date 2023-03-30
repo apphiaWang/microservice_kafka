@@ -15,31 +15,21 @@ function initConsumer() {
   orderCreateConsumer.connect();
   orderCreateConsumer.on('ready', () => {
     console.log('consumer ready..')
-    orderCreateConsumer.subscribe(['orderFail', 'orderSuccess']);
+    orderCreateConsumer.subscribe(['orderFail', 'orderSuccess', 'orderCancelSuccess']);
     orderCreateConsumer.consume();
   }).on('data', function(data) {
-    console.log(data.value);
     const {id} = eventTypes[data.topic].fromBuffer(data.value);
-    if (data.topic == 'orderSuccess') {
-      con.query(
-        `UPDATE orders SET status='APPROVED' WHERE id=${id}`, 
-        (err) => {
-            if (err) {
-                console.log(err);
-                throw err;
-            }
-      });
-    } else {
-      con.query(
-        `UPDATE orders SET status='REJECTED' WHERE id=${id}`, 
-        (err) => {
-            if (err) {
-                console.log(err);
-                throw err;
-            }
-      });
-    }
+    console.log(`Received ${data.topic} on order ${id}`);
+    const status = (data.topic == 'orderSuccess' ? 'APPROVED' :
+            data.topic == 'orderFail' ? 'REJECTED' : 'CANCELED');
+    con.query(
+      `UPDATE orders SET status='${status}' WHERE id=${id}`, 
+      (err) => {
+          if (err) {
+              console.log(err);
+              throw err;
+          }
+    });
   });
 }
-
 module.exports = {initConsumer};

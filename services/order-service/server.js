@@ -13,7 +13,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const {con} = require('./db');
 // event producer
-const {queueCreateOrderMessage} = require('./producer');
+const {queueCreateOrderMessage, queueCancelOrderMessage} = require('./producer');
 
 const {initConsumer} = require('./consumer');
 
@@ -44,6 +44,31 @@ app.get('/api/order/:id', (req, res) => {
             res.status(400).send(JSON.stringify({errorMessage: err.sqlMessage}));
         } else {
             res.end(JSON.stringify(result[0]));
+        }
+    });
+});
+
+// curl -X POST http://localhost:3002/api/cancelOrder/1
+app.post('/api/cancelOrder/:id', (req, res, next) => {
+    const sql = `SELECT * FROM orders WHERE id = ${req.params.id};`;
+    con.query(sql, function (err, result) {
+        if (err) {
+            res.status(400).send(JSON.stringify({errorMessage: err.sqlMessage}));
+        } else if (!result[0]) {
+            res.status(404).send(JSON.stringify({errorMessage: "no order found"}));
+        } else {
+            const {id, customerId, amount} = result[0];
+            con.query(
+                `UPDATE orders SET status='PENDING_CANCEL' where id=${id};`, 
+                (err) => {
+                if (err) {
+                    res.status(400).send(JSON.stringify({errorMessage: err.sqlMessage}));
+                } else {
+                    queueCancelOrderMessage(id, customerId, amount);
+                    res.end(JSON.stringify({orderId: id}));
+                }
+            });
+            
         }
     });
 });

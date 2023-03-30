@@ -4,9 +4,7 @@ dotenv.config();
 const KAFKA_SERVER = process.env.KAFKA_SERVER;
 const Kafka = require('node-rdkafka');
 
-const {createCustomerEventType, orderCreateFailType,
-  orderCreateSuccessType
-} = require('./eventType');
+const {eventTypes} = require('./eventType');
 
 const orderFailStream = Kafka.Producer.createWriteStream({
   'metadata.broker.list': KAFKA_SERVER
@@ -18,29 +16,47 @@ const orderSuccessStream = Kafka.Producer.createWriteStream({
 }, {}, {
   topic: 'orderSuccess'
 });
-
-orderFailStream.on('error', (err) => {
-  console.error('Error in our kafka stream');
-  console.error(err);
+const orderCancelSuccessStream = Kafka.Producer.createWriteStream({
+  'metadata.broker.list': KAFKA_SERVER
+}, {}, {
+  topic: 'orderCancelSuccess'
 });
 
-orderSuccessStream.on('error', (err) => {
-  console.error('Error in our kafka stream');
-  console.error(err);
-});
+
+// orderFailStream.on('error', (err) => {
+//   console.error('Error in our kafka stream');
+//   console.error(err);
+// });
+
+// orderSuccessStream.on('error', (err) => {
+//   console.error('Error in our kafka stream');
+//   console.error(err);
+// });
 
 function queueOrderFailMessage(id) {
-  const success = orderFailStream.write(orderCreateFailType.toBuffer({id}));     
-  if (!success) {
+  const success = orderFailStream.write(eventTypes.orderFail.toBuffer({id}));     
+  if (success) {
+    console.log(`message queued orderFailMessage orderId=${id}`);
+  } else {
     console.log(`Failed to write orderFailMessage orderId=${id}`);
   }
 }
 
 function queueOrderSuccessMessage(id) {
-  const success = orderSuccessStream.write(orderCreateSuccessType.toBuffer({id}));
-  if (!success) {
+  const success = orderSuccessStream.write(eventTypes.orderSuccess.toBuffer({id}));
+  if (success) {
+    console.log(`message queued orderSuccessMessage orderId=${id}`);
+  } else {
     console.log(`Failed to write orderSuccessMessage orderId=${id}`);
   }
 }
+function queueOrderCancelSuccessMessage(id) {
+  const success = orderCancelSuccessStream.write(eventTypes.orderCancelSuccess.toBuffer({id}));
+  if (success) {
+    console.log(`message queued OrderCancelSuccessMessage orderId=${id}`);
+  } else {
+    console.log(`Failed to write OrderCancelSuccessMessage orderId=${id}`);
+  }
+}
 
-module.exports ={queueOrderFailMessage, queueOrderSuccessMessage}
+module.exports ={queueOrderFailMessage, queueOrderSuccessMessage, queueOrderCancelSuccessMessage};
