@@ -8,7 +8,7 @@ const MYSQL_CON = {
     database: process.env.MYSQL_DB
 }
 // create mysql connection
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const con = mysql.createConnection(MYSQL_CON);
 con.connect(function(err) {
     if (err) throw err;
