@@ -44,7 +44,10 @@ app.post('/api/reserveCredit', (req, res, next) => {
     try {
         con.query(sql, function (err, result) {
             if (err) throw err; 
-            const availCredit = result[0]?.credit;
+            if(!result[0]) {
+                res.end(JSON.stringify({code: -1, message: "customer not found"}));
+            }
+            const availCredit = result[0].credit;
             console.log(amount, availCredit)
             if (availCredit >= amount) {
                 const newCredit = availCredit - amount;
@@ -54,8 +57,6 @@ app.post('/api/reserveCredit', (req, res, next) => {
                         if (err) throw err;
                         res.end(JSON.stringify({code: 0, message: "order success"}));
                 });
-            } else if(!availCredit) {
-                res.end(JSON.stringify({code: -1, message: "customer not found"}));
             } else {
                 res.end(JSON.stringify({code: -1, message: "not enough credit"}));
             }
