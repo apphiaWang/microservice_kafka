@@ -1,0 +1,19 @@
+services:
+  mysql:
+    image: 'mysql:latest'
+    ports:
+      - '3306:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+    entrypoint: ["php", "-d", "memory_limit=-1", "vendor/bin/phpunit"]
+  customer: 
+    image: "customer-image"
+    environment:
+      - HOST=localhost
+      - PORT=3001
+      - MYSQL_HOST=localhost
+      - MYSQL_USER=customer_user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DB=DEMO
+    depends_on:
+      - mysql

@@ -3,21 +3,22 @@ const dotenv = require('dotenv');
 dotenv.config();
 const CONFIG = {
     HOST: process.env.HOST,
-    PORT: process.env.PORT,
-}
+    PORT: process.env.PORT
+};
 // initialize express server
 var express = require('express');
 const bodyParser = require('body-parser');
 var app = express();
+app.use(bodyParser.json()); 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const {con} = require('./db');
 
 // event producer
 // const {queueCreateCustomerMessage} = require('./producer');
-const {initConsumer} = require('./consumer');
+// const {initConsumer} = require('./consumer');
 
-initConsumer();
+// initConsumer();
 
 // curl -d "credit=200&name=yanfei" -X POST http://localhost:3001/api/createCustomer
 app.post('/api/createCustomer', (req, res, next) => {
@@ -34,6 +35,39 @@ app.post('/api/createCustomer', (req, res, next) => {
     });
 });
 
+// curl -d "amount=10&customerId=2" -X POST http://localhost:3001/api/reserveCredit
+app.post('/api/reserveCredit', (req, res, next) => {
+    const customerId = req.body.customerId;
+    const amount = parseInt(req.body.amount);
+    console.log(req.body)
+    const sql = `SELECT credit FROM customers WHERE id=${customerId};`;
+    try {
+        con.query(sql, function (err, result) {
+            if (err) throw err; 
+            const availCredit = result[0]?.credit;
+            console.log(amount, availCredit)
+            if (availCredit >= amount) {
+                const newCredit = availCredit - amount;
+                con.query(
+                    `UPDATE customers SET credit=${newCredit} WHERE id=${customerId}`, 
+                    (err) => {
+                        if (err) throw err;
+                        res.end(JSON.stringify({code: 0, message: "order success"}));
+                });
+            } else if(!availCredit) {
+                res.end(JSON.stringify({code: -1, message: "customer not found"}));
+            } else {
+                res.end(JSON.stringify({code: -1, message: "not enough credit"}));
+            }
+        });
+    } catch (err) {
+        res.status(400).send(JSON.stringify({errorMessage: err.sqlMessage}));
+    }
+      
+
+});
+
+
 // curl  -X GET http://localhost:3001/api/customer/1
 app.get('/api/customer/:id', (req, res) => {
     const id = req.params.id;
@@ -41,7 +75,9 @@ app.get('/api/customer/:id', (req, res) => {
     con.query(sql, function (err, result) {
         if (err) {
             res.status(400).send(JSON.stringify({errorMessage: err.sqlMessage}));
-        } else {
+        } else if (!result[0]) {
+            res.status(404).send(JSON.stringify({errorMessage: 'customer not found'}));
+        }else {
             res.end(JSON.stringify(result[0]));
         }
     });
